@@ -12,7 +12,7 @@ It is a **full Next.js (SSR) app**, but its server side only ever calls the serv
 
 ## Boundary with the server
 
-The **server** (`NyxiteServer`) owns the admin **data + enforcement plane**: the `/admin/**` API, audit-log storage/append + signed-export generation, `admin`-role auth, device-revoke enforcement, and the operational jobs. See [server `specification/12`](https://github.com/Nyxite/server). This dashboard is the **operator-facing surface** over that plane. Where the two disagree on the API contract, the server spec wins.
+The **server** (`NyxiteServer`) owns the admin **data + enforcement plane**: the `/admin/**` API, audit-log storage/append + signed-export generation, `admin`-role auth, device-revoke enforcement, and the operational jobs. See [server `specification/12`](https://github.com/Nyxite/NyxiteServer). This dashboard is the **operator-facing surface** over that plane. Where the two disagree on the API contract, the server spec wins.
 
 ## Source of truth
 

@@ -61,6 +61,11 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 - Talks only to the server's **`/admin/**` API** — no direct database, blob-store, or content access
 - Ships as its **own container**, bound to the **WireGuard** interface only (admin-only); not co-hosted on the public web origin
 
+## License & entitlement (read-only status)
+
+- Surfaces the instance's **license status** decoded from the server's verified token: tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. This is a **read-only** view — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the vendor-side [`NyxiteLicense`](license.md) service).
+- In **community mode** the enterprise-gated capabilities appear **disabled with a "requires license" hint**: SSO / OIDC configuration, enterprise reader-groups, the **per-user quota override** and **per-group size override**, **scoped / custom RBAC roles**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. (See L-3 in [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md).)
+
 ## Out of scope (privacy over features)
 
 Deliberately **not** in the dashboard, because they would require content access or fall outside the privacy-first remit:

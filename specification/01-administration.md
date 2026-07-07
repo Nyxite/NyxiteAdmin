@@ -4,10 +4,10 @@
 
 ## 1.1 Admin model
 
-- Access is governed by **system-defined permissions** (one per feature/capability), bundled into **roles**, granted via **groups**. A bootstrap super-admin exists from install; everything else is delegated (§1.2–1.3). With the enterprise IdP enabled, a Keycloak claim may map onto a role (server [08](https://github.com/Nyxite/server)).
+- Access is governed by **system-defined permissions** (one per feature/capability), bundled into **roles**, granted via **groups**. A bootstrap super-admin exists from install; everything else is delegated (§1.2–1.3). With the enterprise IdP enabled, a Keycloak claim may map onto a role (server [08](https://github.com/Nyxite/NyxiteServer)).
 - Dashboard visibility: account list, **structure by opaque ID** (names are encrypted), storage usage, version/key-generation counts, audit log.
 - The dashboard **cannot** decrypt names or content. No content-read view and no break-glass exist.
-- **Existence-hiding:** the server returns **`404` (not `403`) for any resource the caller has no reach to** (indistinguishable from non-existent — server [13 §13.6a](https://github.com/Nyxite/server)). The dashboard surfaces such responses as a plain "not found" and never implies "exists but forbidden"; `403` appears only for capability/collection denials.
+- **Existence-hiding:** the server returns **`404` (not `403`) for any resource the caller has no reach to** (indistinguishable from non-existent — server [13 §13.6a](https://github.com/Nyxite/NyxiteServer)). The dashboard surfaces such responses as a plain "not found" and never implies "exists but forbidden"; `403` appears only for capability/collection denials.
 
 ## 1.2 Roles & permissions
 
@@ -15,7 +15,7 @@
 - **Roles** bundle permissions. Built-in presets ship out of the box (owner/super-admin, security auditor (read-only), user manager, help-desk); operators may also **create custom roles** by composing them from the fixed permission set (AD-1).
 - **Least-privilege / delegated admin** — a scoped role grants only its permissions (e.g. user management without audit, or audit read-only).
 
-**Enforcement — checks are per-permission, never per-role, and target-aware (AD-1).** Every protected capability is guarded, **once, in server code**, by the single permission key it requires (server route policies, e.g. `RequirePermission("users.block")` — server [12 §12.6](https://github.com/Nyxite/server)). A role, built-in or custom, is only a **data bundle** of those keys; adding a custom role adds **no new check site**. The operation→permission mapping is **code-owned** (ships with the feature); the DB stores only role→permission (with scope) and group assignments. At request time the caller's effective grants resolve `token → user → groups → roles → permissions` (union); the guard passes when the caller holds the key **and the target satisfies the grant's `scope`** — a `scope` constrains valid targets (e.g. `{"groups":[...]}` for delegated admin over specific groups, or `{"excludeRoles":["admin"]}` to protect other admins), a **null scope being instance-wide** (super-admin). On failure, existence-hiding applies: no reach → `404`, visible-but-forbidden → `403`. The **server is authoritative**; the dashboard reads the same effective set only to **hide/disable controls** (UX), and never enforces. Account-state gates (**quota**, **block**) are a **separate axis** — they act on the *subject* account at the upload/ACL path (§1.4), not on admin permissions.
+**Enforcement — checks are per-permission, never per-role, and target-aware (AD-1).** Every protected capability is guarded, **once, in server code**, by the single permission key it requires (server route policies, e.g. `RequirePermission("users.block")` — server [12 §12.6](https://github.com/Nyxite/NyxiteServer)). A role, built-in or custom, is only a **data bundle** of those keys; adding a custom role adds **no new check site**. The operation→permission mapping is **code-owned** (ships with the feature); the DB stores only role→permission (with scope) and group assignments. At request time the caller's effective grants resolve `token → user → groups → roles → permissions` (union); the guard passes when the caller holds the key **and the target satisfies the grant's `scope`** — a `scope` constrains valid targets (e.g. `{"groups":[...]}` for delegated admin over specific groups, or `{"excludeRoles":["admin"]}` to protect other admins), a **null scope being instance-wide** (super-admin). On failure, existence-hiding applies: no reach → `404`, visible-but-forbidden → `403`. The **server is authoritative**; the dashboard reads the same effective set only to **hide/disable controls** (UX), and never enforces. Account-state gates (**quota**, **block**) are a **separate axis** — they act on the *subject* account at the upload/ACL path (§1.4), not on admin permissions.
 
 ## 1.3 Groups
 
@@ -23,13 +23,13 @@
 - **Bidirectional assignment** — from a group, add many users at once; from a user, add to many groups.
 - These are **access/permission groups** (metadata only, **no keys**). The richer **enterprise/family file-sharing groups** (per-visibility encryption, hierarchical keys) are **deferred** and will extend this model — backlog in `docs/OPEN-DECISIONS.md`.
 
-Backing tables (`roles`, `role_permissions`, `groups`, `group_roles`, `group_members`) are server-owned — see server [03](https://github.com/Nyxite/server).
+Backing tables (`roles`, `role_permissions`, `groups`, `group_roles`, `group_members`) are server-owned — see server [03](https://github.com/Nyxite/NyxiteServer).
 
 ## 1.4 User & account management
 
-- **Per-user storage quota** — set a max storage size per user; the server counts **ciphertext bytes** and enforces the limit **at upload** (server [03](https://github.com/Nyxite/server), [06](https://github.com/Nyxite/server)).
+- **Per-user storage quota** — set a max storage size per user; the server counts **ciphertext bytes** and enforces the limit **at upload** (server [03](https://github.com/Nyxite/NyxiteServer), [06](https://github.com/Nyxite/NyxiteServer)).
 - **Bulk editing** — select multiple users and apply role/group assignment, quota, status, or limit changes in one action.
-- **Block a user (download-only state).** `status = blocked` denies all writes (create/edit/upload/share) and **fully disables the web UI** for that account; **ciphertext download** via the desktop/Android/API path still works so the user keeps local copies. Enforced server-side as an account state (server [09](https://github.com/Nyxite/server)); reversible.
+- **Block a user (download-only state).** `status = blocked` denies all writes (create/edit/upload/share) and **fully disables the web UI** for that account; **ciphertext download** via the desktop/Android/API path still works so the user keeps local copies. Enforced server-side as an account state (server [09](https://github.com/Nyxite/NyxiteServer)); reversible.
 - Administrative **device revoke** — cut off an enrolled device (the admin still cannot read its keys).
 - **Provisioning at scale** — SCIM auto-provision/deprovision from an enterprise IdP, CSV import/export, domain-verified auto-join.
 - **JIT / time-boxed elevated access** for administrators.
@@ -41,7 +41,7 @@ Backing tables (`roles`, `role_permissions`, `groups`, `group_roles`, `group_mem
 
 ## 1.6 Server admin API consumed (`/api/v1/admin/**`) **[P]**
 
-These endpoints are **server-owned** (see server [12](https://github.com/Nyxite/server)); the dashboard's Next.js server side calls them and renders the results.
+These endpoints are **server-owned** (see server [12](https://github.com/Nyxite/NyxiteServer)); the dashboard's Next.js server side calls them and renders the results.
 
 ### Users & instance
 | Method | Path | Dashboard view/action |
@@ -94,6 +94,11 @@ The dashboard queries the append-only `audit_log` (server-owned) and lets the op
 - Effective **non-secret** config only — never the token-signing key, the enterprise Keycloak client secret, or any keys (there is no server content KEK).
 - Per-user/per-file settings (sync policy, etc.) are **client-encrypted**; surfaced opaque, never decrypted.
 - Triggerable maintenance: GC/purge, key-directory consistency checks, share-expiry sweeps — audited server-side. **No** reindex (no server index) and **no** content operations.
+
+## 1.9a License & entitlement (read-only status)
+
+- Renders the instance's **license status** from the server's admin API (server [16 §16.10](https://github.com/Nyxite/NyxiteServer)): tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. **Read-only** — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the separate vendor-side [`NyxiteLicense`](https://github.com/Nyxite/NyxiteLicense) service).
+- In **community mode** the enterprise-gated controls render **disabled with a "requires license" hint** (L-3): SSO/OIDC config, enterprise reader-groups, **per-user quota override** and **per-group size override**, **scoped/custom RBAC**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. The gate is a **UX affordance only** — the server enforces entitlement (§16), the dashboard never does.
 
 ## 1.10 Out of scope (privacy over features)
 
