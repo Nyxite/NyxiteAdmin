@@ -83,7 +83,7 @@ These endpoints are **server-owned** (see server [12](https://github.com/Nyxite/
 
 The dashboard queries the append-only `audit_log` (server-owned) and lets the operator **filter, view, export, and stream** it. Covered actions: **auth events, device/key lifecycle, shares created/revoked, key rotations, admin actions (role/group/quota/status changes, blocks), and purges** — **never content or keys**.
 
-**Signed audit bundle [P]:** `NDJSON` of audit rows + a `manifest.json` `{ from, to, count, chainHead, alg:"ed25519", signature }`. The rows form a **rolling hash chain**, and the manifest carries a **detached Ed25519 signature** over the final `chainHead`. The dashboard's verifier **replays the chain and checks the signature**; a clean bundle verifies, a tampered row fails. **Verification runs server-side, in the dashboard's Next.js route handler (AD-4)** — the verifier and the server's audit-signing public key stay off the client.
+**Signed audit bundle [P]:** `NDJSON` of audit rows + a `manifest.json` `{ from, to, count, chainHead, alg:"ed25519+ml-dsa-65", signature }`. The rows form a **rolling hash chain**, and the manifest carries a **detached hybrid Ed25519 + ML-DSA-65 signature** (NIST level 3) over the final `chainHead` — audit signing is a content/operational boundary and ships hybrid-PQC at v1.0.0 (PQ-2/PQ-3; the `alg` tag is the agility anchor per PQ-4). The dashboard's verifier **replays the chain and checks both signature halves** (a break in either alone is non-fatal, PQ-1); a clean bundle verifies, a tampered row fails. **Verification runs server-side, in the dashboard's Next.js route handler (AD-4)** — the verifier and the server's audit-signing public key stay off the client.
 
 ## 1.8 Security monitoring
 

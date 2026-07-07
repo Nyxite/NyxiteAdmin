@@ -40,7 +40,7 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 ## Audit & security monitoring
 
 - Query and filter the append-only audit log (auth, device/key lifecycle, shares, admin actions, key rotations, purges — **never content**)
-- View, **verify, and export signed audit bundles** — NDJSON + a manifest with a rolling-hash chain and a detached **Ed25519** signature over the chain head; the dashboard replays the chain and checks the signature to prove an export is complete and untampered
+- View, **verify, and export signed audit bundles** — NDJSON + a manifest with a rolling-hash chain and a detached **hybrid Ed25519 + ML-DSA-65** signature (NIST level 3; the content/operational signing boundary went hybrid-PQC at v1.0.0 per PQ-2) over the chain head; the dashboard replays the chain and verifies **both** signature halves to prove an export is complete and untampered
 - **SIEM streaming** — forward the audit log to syslog / webhook, with configurable **retention tiers**
 - **Metadata-based anomaly detection** — surface and alert on suspicious access patterns (mass-download / exfiltration, impossible-travel logins, brute-force) from metadata alone, never content. This is a differentiator: abuse detection with zero content access.
 

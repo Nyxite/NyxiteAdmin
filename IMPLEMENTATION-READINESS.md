@@ -84,9 +84,10 @@ Acceptance cases that exercise the dashboard: `P4.2-TC-1,3,7,9,10,11` and `P4.4-
 ### B4 — Audit-row schema + audit-bundle hash construction (verifier is undefinable)
 - **Missing:** (1) the exact **audit-row field set** and its **canonical serialization**;
   (2) the **hash algorithm** and **chaining rule** for the "rolling-hash chain"; (3) how
-  `chainHead` is computed; (4) the Ed25519 signature/pubkey encoding and **how the dashboard's
-  route handler obtains the audit-signing public key**. Only "NDJSON + `manifest.json`
-  `{from,to,count,chainHead,alg:"ed25519",signature}`" and "Ed25519 over chainHead" are pinned.
+  `chainHead` is computed; (4) the **hybrid Ed25519 + ML-DSA-65** signature/pubkey encoding (audit signing went hybrid-PQC
+  at v1.0.0 per PQ-2/PQ-3 — the verifier must check **both** halves) and **how the dashboard's
+  route handler obtains the audit-signing public keys**. Only "NDJSON + `manifest.json`
+  `{from,to,count,chainHead,alg:"ed25519+ml-dsa-65",signature}`" and "hybrid Ed25519 + ML-DSA-65 over chainHead" are pinned.
   BLAKE3-256 is the platform content hash but is **not stated** to be the audit-chain hash.
 - **Blocks:** the AD-4 **server-side verifier** in P4.2-ADM-1; `P4.2-CORE-2`; `P4.2-TC-3`.
   A verifier that "replays the chain" needs byte-exact canonicalization + the hash primitive.
