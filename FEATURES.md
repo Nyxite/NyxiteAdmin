@@ -66,6 +66,11 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 - Surfaces the instance's **license status** decoded from the server's verified token: tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. This is a **read-only** view — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the vendor-side [`NyxiteLicense`](license.md) service).
 - In **community mode** the enterprise-gated capabilities appear **disabled with a "requires license" hint**: SSO / OIDC configuration, enterprise reader-groups, the **per-user quota override** and **per-group size override**, **scoped / custom RBAC roles**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. (See L-3 in [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md).)
 
+## Support helpdesk (link-out only)
+
+- Bug reporting and ticketing are a **separate vendor-side component** — the central, maintainer-run **[Nyxite Support](support.md)** helpdesk (`NyxiteSupport`). The dashboard holds **no** ticket data and stores nothing; on instances where reporting is enabled (`support.enabled`; SUP-9) it surfaces an **outbound link** to that helpdesk's operator UI, and where reporting is disabled **no link is shown**.
+- The support plane is the project's **one consensual, non-E2EE exception**, deliberately **separate** from the zero-knowledge admin/metadata plane this dashboard operates on — it never mixes with the structure/usage/audit surfaces here. See [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md) (SUP-1–SUP-9).
+
 ## Out of scope (privacy over features)
 
 Deliberately **not** in the dashboard, because they would require content access or fall outside the privacy-first remit:
@@ -73,7 +78,7 @@ Deliberately **not** in the dashboard, because they would require content access
 - Content moderation, server-side content search, content DLP, legal-hold content production, and any **break-glass** — impossible under E2EE, by design
 - Usage/business analytics, billing, and branding/white-label — dropped to keep the surface privacy-focused
 - **Enterprise/family file-sharing groups** (per-visibility encryption, hierarchical keys) — deferred; tracked as a backlog item and will extend the group model here
-- **Support / helpdesk tooling**, starting with a **simple bug-reporting** flow — deferred; tracked as a backlog item
+- **Ticket data / helpdesk management** — the dashboard stores and manages **no** tickets; bug reporting + ticketing are the separate vendor-side [Nyxite Support](support.md) component, which the dashboard only **links out** to (see *Support helpdesk (link-out only)* above)
 
 ## Resolved decisions
 

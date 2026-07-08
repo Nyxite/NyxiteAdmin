@@ -100,9 +100,15 @@ The dashboard queries the append-only `audit_log` (server-owned) and lets the op
 - Renders the instance's **license status** from the server's admin API (server [16 §16.10](https://github.com/Nyxite/NyxiteServer)): tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. **Read-only** — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the separate vendor-side [`NyxiteLicense`](https://github.com/Nyxite/NyxiteLicense) service).
 - In **community mode** the enterprise-gated controls render **disabled with a "requires license" hint** (L-3): SSO/OIDC config, enterprise reader-groups, **per-user quota override** and **per-group size override**, **scoped/custom RBAC**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. The gate is a **UX affordance only** — the server enforces entitlement (§16), the dashboard never does.
 
+## 1.9b Support helpdesk (link-out only)
+
+- The in-app bug-reporting helpdesk runs on the **central vendor-side `NyxiteSupport`** service (OPEN-DECISIONS **SUP-1..SUP-9**), which has **its own operator UI**. This dashboard only **links out** to that UI — it holds **no ticket data and stores nothing** about tickets.
+- The link is shown **only where the server advertises `support.enabled`** (SUP-9; server [04 §4.9](https://github.com/Nyxite/NyxiteServer), [14 §14.9](https://github.com/Nyxite/NyxiteServer)) — the maintainer's official instance(s) in v1; absent elsewhere.
+- The support plane is a **consensual, non-E2EE** plane, **separate from the zero-knowledge admin plane** this dashboard operates on; no ticket content ever crosses into the admin API or this UI.
+
 ## 1.10 Out of scope (privacy over features)
 
-Deliberately absent, because they would require content access or fall outside the privacy-first remit: content moderation / server-side content search / content DLP / legal-hold content production / **break-glass** (impossible under E2EE); usage/business analytics, billing, branding/white-label (dropped to stay privacy-focused); **enterprise/family file-sharing groups** and **support/helpdesk (incl. bug reporting)** — both **deferred** as backlog items (`docs/OPEN-DECISIONS.md`).
+Deliberately absent, because they would require content access or fall outside the privacy-first remit: content moderation / server-side content search / content DLP / legal-hold content production / **break-glass** (impossible under E2EE); usage/business analytics, billing, branding/white-label (dropped to stay privacy-focused); **enterprise/family file-sharing groups** — **deferred** as a backlog item (`docs/OPEN-DECISIONS.md`). The **support/helpdesk (in-app bug reporting)** is **not** managed here: it lives on the central vendor-side `NyxiteSupport` service and this dashboard only **links out** to its operator UI (§1.9b, SUP-1..SUP-9) — it stores no ticket data.
 
 ## 1.11 Access & hosting
 
