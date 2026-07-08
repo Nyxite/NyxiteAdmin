@@ -153,9 +153,12 @@ Each needs a scoping ruling (v1.0.0 vs. deferred) *and* a contract before it can
   test method). The **JSON error body shape** is not pinned. Assumable.
 - **M2 — Bulk partial-failure response.** `P4.2-TC-10` says "atomically-or-reported"; the
   per-target result shape for `POST /admin/users/bulk` is not given. Designable, then reconciled.
-- **M3 — Visual design / brand.** `OPEN-DECISIONS.md` "Design" backlog item states the design
-  system / brand / UX conventions are **undefined**. shadcn/ui gives components; a build can
-  proceed on defaults, but the intended look-and-feel is unresolved.
+- **M3 — Visual design / brand.** *Resolved (`OPEN-DECISIONS DS`).* The design language is now the
+  shared `NyxiteDesign` system: the dashboard consumes the same `nyxite-tokens.json` single source of
+  truth as the web client (generated CSS custom properties + a Tailwind theme, `DS-3`) — **Layer A
+  only** (tokens + standard shadcn/ui components), not the editor shell (`DS-1`) — and keeps its own
+  dense admin layout. This is a **shared design input** with `NyxiteDesign`/web, not a
+  NyxiteAdmin-owned one. Fonts are **self-hosted/bundled, never a Google Fonts CDN**.
 - **M4 — Client-encrypted settings display** (`P4.2-SRV-3`, `/me/settings`, per-file
   `metadata_enc`). "Show opaque" is clear enough; exact opaque representation is minor.
 - **M5 — CORE fixture artifacts.** `P4.2-CORE-1` (settings object `settings=7`) and

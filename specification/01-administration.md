@@ -113,6 +113,7 @@ Deliberately absent, because they would require content access or fall outside t
 ## 1.11 Access & hosting
 
 - Standalone Next.js SSR app reusing the web client's stack (Next.js + shadcn/ui).
+- **Shared design language (DS, Layer A only).** The UI is built from the shared [`NyxiteDesign`](https://github.com/Nyxite/NyxiteDesign) tokens (`nyxite-tokens.json` → generated CSS custom properties + a Tailwind theme, DS-3) that the web client also consumes — same deep-purple brand accent, Manrope (UI) + Source Serif 4 (content) type, and light/dark themes. The dashboard adopts **Layer A only** (tokens + standard shadcn/ui components: buttons, inputs, tables, badges, dialogs); it does **not** take Layer B, the app-shell/editor chrome (DS-1), keeping its own **dense admin layout** so the operator context stays visually distinct from the editor. Fonts are **self-hosted**, never a CDN. See `docs/OPEN-DECISIONS.md` (DS).
 - **Authenticates by reusing the server's native admin session/token (AD-3)**; RBAC is enforced server-side per request.
 - Its server side talks solely to the server's **`/admin/**` API (AD-2)** — no direct database, blob-store, or content access.
 - Ships as its **own container (AD-5)**, bound to the **WireGuard** interface only (admin-only); not co-hosted on the public web origin.

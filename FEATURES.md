@@ -57,6 +57,7 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 ## Access & deployment
 
 - Standalone Next.js SSR app reusing the web client's stack (Next.js + shadcn/ui) for a consistent component language
+- **Shared design language ([NyxiteDesign](https://github.com/Nyxite/NyxiteDesign), Layer A only).** Consumes the same [`nyxite-tokens.json`](https://github.com/Nyxite/NyxiteDesign) single source of truth as the web client — deep-purple brand accent, Manrope (UI) + Source Serif 4 (content), light/dark themes — plus the standard components built on it (buttons, inputs, tables, badges, dialogs). It adopts **only Layer A** (tokens + standard components); it does **not** take Layer B, the app-shell/editor chrome (rail, toolbar densities, canvas), keeping its **own dense dashboard layout** so an operator always knows they're in an admin context, not the editor. Fonts are self-hosted, never a CDN. (See DS / DS-1 in [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md).)
 - Authenticates by **reusing the server's native admin session/token**; RBAC enforced server-side per request
 - Talks only to the server's **`/admin/**` API** — no direct database, blob-store, or content access
 - Ships as its **own container**, bound to the **WireGuard** interface only (admin-only); not co-hosted on the public web origin
