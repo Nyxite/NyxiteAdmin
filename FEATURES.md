@@ -14,13 +14,14 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 
 - **Create groups** and assign users to them; a group carries one or more **roles**, so members inherit the union of those roles' permissions.
 - **Bidirectional assignment** — from a **group view**, add multiple users at once; from a **user view**, add one user to multiple groups.
-- These are **access/permission groups** (metadata only, no keys). The richer **enterprise/family groups** — files shared within a group with per-visibility encryption and hierarchical keys — are a **separate, deferred** capability that will build on this group model (see [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md), backlog: enterprise/family groups).
+- These are **access/permission groups** (metadata only, no keys). The richer **enterprise/family file-sharing groups** — files shared within a group with per-visibility encryption and a hierarchical group-key layer — are **resolved** (cluster **G-2–G-5**, built in **Phase 4.4**) and **build directly on this same group model**: they reuse these group/member rows as the membership primitive, adding client-side group keys and per-member grants. The admin plane still manages only **membership** (metadata); the group-key layer is client-side and the dashboard never holds a group key (see [OPEN-DECISIONS.md](https://github.com/Nyxite/Nyxite/blob/main/docs/OPEN-DECISIONS.md), G-2–G-5, and [features/groups.md](https://github.com/Nyxite/Nyxite/blob/main/features/groups.md)).
 
 ## User & account management
 
 - List accounts (identity + usage); per-user storage usage, counts, device list, key generations
 - **Per-user storage quota** — set a maximum storage size per user; the server counts ciphertext bytes and enforces the limit at upload
-- **Bulk editing** — select and edit **multiple users at once** (role/group assignment, quota, status, limits) in one action
+- **Per-user deletion-retention override** — override the instance-wide Trash / grace windows for a specific user (same mechanism as the quota; enterprise-gated)
+- **Bulk editing** — select and edit **multiple users at once** (role/group assignment, quota, retention override, status, limits) in one action
 - **Block a user (download-only state).** A blocked account can **only download files to keep them locally**: the server denies all writes (create/edit/upload/share) and the **web UI is fully disabled** for them; ciphertext download via the desktop/Android/API path still works so they retain local copies. Enforced server-side as an account state, reversible.
 - Administrative **device revoke** — cut off an enrolled device's enrollment/relay access (the admin still cannot read its keys)
 - **Provisioning at scale** — SCIM auto-provisioning/deprovisioning from an enterprise IdP, CSV import/export, domain-verified auto-join
@@ -51,26 +52,28 @@ Next.js + shadcn/ui operator dashboard (reuses the **web client** stack). A **se
 ## Configuration & maintenance
 
 - Operator-configured audit retention
+- **Deletion-retention windows** — set the instance-wide **Trash** (default 30 d) and **grace** (default 30 d, ~60 d to purge) window defaults, each with a per-user override; drives the staged Trash → grace → purge timeline (DL-1–DL-5). No "empty trash now" / permanent-delete-now control — every delete runs the full timeline
+- **Grace-tier restore** — explicit admin action to restore an item that has left the user-visible Trash but is still within the grace window; irreversible after purge; audited
 - Triggerable maintenance jobs — blob GC, key-directory consistency checks, share-expiry sweeps — all audited; **no** reindex (there is no server index) and **no** content operations
 - Per-user/per-file settings (sync policy, etc.) are **client-encrypted**; the dashboard surfaces them opaque and never decrypts them
 
 ## Access & deployment
 
 - Standalone Next.js SSR app reusing the web client's stack (Next.js + shadcn/ui) for a consistent component language
-- **Shared design language ([NyxiteDesign](https://github.com/Nyxite/NyxiteDesign), Layer A only).** Consumes the same [`nyxite-tokens.json`](https://github.com/Nyxite/NyxiteDesign) single source of truth as the web client — deep-purple brand accent, Manrope (UI) + Source Serif 4 (content), light/dark themes — plus the standard components built on it (buttons, inputs, tables, badges, dialogs). It adopts **only Layer A** (tokens + standard components); it does **not** take Layer B, the app-shell/editor chrome (rail, toolbar densities, canvas), keeping its **own dense dashboard layout** so an operator always knows they're in an admin context, not the editor. Fonts are self-hosted, never a CDN. (See DS / DS-1 in [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md).)
+- **Shared design language ([NyxiteDesign](https://github.com/Nyxite/NyxiteDesign), Layer A only).** Consumes the same [`nyxite-tokens.json`](https://github.com/Nyxite/NyxiteDesign) single source of truth as the web client — deep-purple brand accent, Manrope (UI) + Source Serif 4 (content), light/dark themes — plus the standard components built on it (buttons, inputs, tables, badges, dialogs). It adopts **only Layer A** (tokens + standard components); it does **not** take Layer B, the app-shell/editor chrome (rail, toolbar densities, canvas), keeping its **own dense dashboard layout** so an operator always knows they're in an admin context, not the editor. Fonts are self-hosted, never a CDN. (See DS / DS-1 in [OPEN-DECISIONS.md](https://github.com/Nyxite/Nyxite/blob/main/docs/OPEN-DECISIONS.md).)
 - Authenticates by **reusing the server's native admin session/token**; RBAC enforced server-side per request
 - Talks only to the server's **`/admin/**` API** — no direct database, blob-store, or content access
 - Ships as its **own container**, bound to the **WireGuard** interface only (admin-only); not co-hosted on the public web origin
 
 ## License & entitlement (read-only status)
 
-- Surfaces the instance's **license status** decoded from the server's verified token: tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. This is a **read-only** view — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the vendor-side [`NyxiteLicense`](license.md) service).
-- In **community mode** the enterprise-gated capabilities appear **disabled with a "requires license" hint**: SSO / OIDC configuration, enterprise reader-groups, the **per-user quota override** and **per-group size override**, **scoped / custom RBAC roles**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. (See L-3 in [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md).)
+- Surfaces the instance's **license status** decoded from the server's verified token: tier, licensed-to email, **registered/active** state, current **lease expiry**, and any **degrade / read-only lockout** warning with a days-remaining countdown. This is a **read-only** view — the dashboard neither issues nor verifies tokens (verification is the server's offline job; issuance is the vendor-side [`NyxiteLicense`](https://github.com/Nyxite/NyxiteLicense) service).
+- In **community mode** the enterprise-gated capabilities appear **disabled with a "requires license" hint**: SSO / OIDC configuration, enterprise reader-groups, the **per-user quota override**, **per-user retention override**, and **per-group size override**, **scoped / custom RBAC roles**, and **signed audit-log export**. Basic admin, per-user management, group cap ≤ 16, and audit viewing stay available. (The sixth L-3 gate — running a **self-hosted `NyxiteSupport` desk** (SUP-11) — is a **deploy-side** capability, not a dashboard control, so it doesn't appear here.) (See L-3 in [OPEN-DECISIONS.md](https://github.com/Nyxite/Nyxite/blob/main/docs/OPEN-DECISIONS.md).)
 
 ## Support helpdesk (link-out only)
 
-- Bug reporting and ticketing are a **separate vendor-side component** — the central, maintainer-run **[Nyxite Support](support.md)** helpdesk (`NyxiteSupport`). The dashboard holds **no** ticket data and stores nothing; on instances where reporting is enabled (`support.enabled`; SUP-9) it surfaces an **outbound link** to that helpdesk's operator UI, and where reporting is disabled **no link is shown**.
-- The support plane is the project's **one consensual, non-E2EE exception**, deliberately **separate** from the zero-knowledge admin/metadata plane this dashboard operates on — it never mixes with the structure/usage/audit surfaces here. See [OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md) (SUP-1–SUP-9).
+- Bug reporting and ticketing are a **separate vendor-side component** — the central, maintainer-run **[Nyxite Support](https://github.com/Nyxite/Nyxite/blob/main/features/support.md)** helpdesk (`NyxiteSupport`). The dashboard holds **no** ticket data and stores nothing; on instances where reporting is enabled (`support.enabled`; SUP-9) it surfaces an **outbound link** to that helpdesk's operator UI, and where reporting is disabled **no link is shown**.
+- The support plane is the project's **one consensual, non-E2EE exception**, deliberately **separate** from the zero-knowledge admin/metadata plane this dashboard operates on — it never mixes with the structure/usage/audit surfaces here. See [OPEN-DECISIONS.md](https://github.com/Nyxite/Nyxite/blob/main/docs/OPEN-DECISIONS.md) (SUP-1–SUP-13).
 
 ## Out of scope (privacy over features)
 
@@ -78,12 +81,12 @@ Deliberately **not** in the dashboard, because they would require content access
 
 - Content moderation, server-side content search, content DLP, legal-hold content production, and any **break-glass** — impossible under E2EE, by design
 - Usage/business analytics, billing, and branding/white-label — dropped to keep the surface privacy-focused
-- **Enterprise/family file-sharing groups** (per-visibility encryption, hierarchical keys) — deferred; tracked as a backlog item and will extend the group model here
-- **Ticket data / helpdesk management** — the dashboard stores and manages **no** tickets; bug reporting + ticketing are the separate vendor-side [Nyxite Support](support.md) component, which the dashboard only **links out** to (see *Support helpdesk (link-out only)* above)
+- **Enterprise/family file-sharing group *keys*** (per-visibility encryption, the hierarchical group-key layer) — the feature is **resolved** (G-2–G-5, Phase 4.4) but its keys are **client-side**: the dashboard manages group **membership** only and never holds a group key. Key material is out of scope here by design, not deferred.
+- **Ticket data / helpdesk management** — the dashboard stores and manages **no** tickets; bug reporting + ticketing are the separate vendor-side [Nyxite Support](https://github.com/Nyxite/Nyxite/blob/main/features/support.md) component, which the dashboard only **links out** to (see *Support helpdesk (link-out only)* above)
 
 ## Resolved decisions
 
-All admin-dashboard sub-decisions are ratified — canonical in [../docs/OPEN-DECISIONS.md](../docs/OPEN-DECISIONS.md) (Resolved, AD-1–AD-5):
+All admin-dashboard sub-decisions are ratified — canonical in [../docs/OPEN-DECISIONS.md](https://github.com/Nyxite/Nyxite/blob/main/docs/OPEN-DECISIONS.md) (Resolved, AD-1–AD-5):
 
 - **AD-1** — permission enforcement: **target-aware / scoped** (per-permission guard + target `scope`)
 - **AD-2** — data path: **server `/admin/**` API** (all reads and writes)

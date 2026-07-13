@@ -21,14 +21,16 @@
 
 - **Create groups**; a group carries one or more **roles**, so a member's **effective permissions = the union of its groups' roles**.
 - **Bidirectional assignment** — from a group, add many users at once; from a user, add to many groups.
-- These are **access/permission groups** (metadata only, **no keys**). The richer **enterprise/family file-sharing groups** (per-visibility encryption, hierarchical keys) are **deferred** and will extend this model — backlog in `docs/OPEN-DECISIONS.md`.
+- These are **access/permission groups** (metadata only, **no keys**). The richer **enterprise/family file-sharing groups** (per-visibility encryption, the hierarchical group-key layer) are **resolved** (G-2–G-5, Phase 4.4) and **build on this same model** — reusing these membership rows, adding client-side group keys. The admin plane manages only **membership**; the group-key layer is client-side (canonical in `docs/OPEN-DECISIONS.md`, G-2–G-5).
+- **File-sharing group size cap.** A file-sharing group's member count is capped at the instance default **`group_max_members` = 16** (community); the **per-group size override** that raises it beyond 16 is an **enterprise-gated** control (G-5, L-3 — see §1.9a), enforced server-side by membership-row count ([server 12 §12.7](https://github.com/Nyxite/NyxiteServer)).
 
 Backing tables (`roles`, `role_permissions`, `groups`, `group_roles`, `group_members`) are server-owned — see server [03](https://github.com/Nyxite/NyxiteServer).
 
 ## 1.4 User & account management
 
 - **Per-user storage quota** — set a max storage size per user; the server counts **ciphertext bytes** and enforces the limit **at upload** (server [03](https://github.com/Nyxite/NyxiteServer), [06](https://github.com/Nyxite/NyxiteServer)).
-- **Bulk editing** — select multiple users and apply role/group assignment, quota, status, or limit changes in one action.
+- **Per-user deletion-retention override** — override the instance-wide **Trash** and **grace** windows for a specific user (same override mechanism as the quota; instance defaults set in §1.9). The staged Trash → grace → purge timeline (DL-1–DL-5) is enforced server-side over opaque blobs; the override is an **enterprise-gated** control (§1.9a).
+- **Bulk editing** — select multiple users and apply role/group assignment, quota, retention override, status, or limit changes in one action.
 - **Block a user (download-only state).** `status = blocked` denies all writes (create/edit/upload/share) and **fully disables the web UI** for that account; **ciphertext download** via the desktop/Android/API path still works so the user keeps local copies. Enforced server-side as an account state (server [09](https://github.com/Nyxite/NyxiteServer)); reversible.
 - Administrative **device revoke** — cut off an enrolled device (the admin still cannot read its keys).
 - **Provisioning at scale** — SCIM auto-provision/deprovision from an enterprise IdP, CSV import/export, domain-verified auto-join.
@@ -93,6 +95,8 @@ The dashboard queries the append-only `audit_log` (server-owned) and lets the op
 
 - Effective **non-secret** config only — never the token-signing key, the enterprise Keycloak client secret, or any keys (there is no server content KEK).
 - Per-user/per-file settings (sync policy, etc.) are **client-encrypted**; surfaced opaque, never decrypted.
+- **Deletion-retention windows** — set the instance-wide **Trash** window default (default **30 days**) and **grace** window default (default **30 days**, ~60 days to irreversible purge), each with a per-user override (§1.4). Windows drive the server's staged deletion timeline (DL-1–DL-5, server [03 §3.3](https://github.com/Nyxite/NyxiteServer), [14 §14.3](https://github.com/Nyxite/NyxiteServer)). There is **no** "empty trash now" / permanent-delete-now control — every delete runs the full timeline (DL-5).
+- **Grace-tier restore** — an explicit admin action to restore an item that has left the user-visible Trash but is still inside the grace window (DL-4); after purge it is irreversible. Audited server-side.
 - Triggerable maintenance: GC/purge, key-directory consistency checks, share-expiry sweeps — audited server-side. **No** reindex (no server index) and **no** content operations.
 
 ## 1.9a License & entitlement (read-only status)
@@ -102,13 +106,13 @@ The dashboard queries the append-only `audit_log` (server-owned) and lets the op
 
 ## 1.9b Support helpdesk (link-out only)
 
-- The in-app bug-reporting helpdesk runs on the **central vendor-side `NyxiteSupport`** service (OPEN-DECISIONS **SUP-1..SUP-9**), which has **its own operator UI**. This dashboard only **links out** to that UI — it holds **no ticket data and stores nothing** about tickets.
-- The link is shown **only where the server advertises `support.enabled`** (SUP-9; server [04 §4.9](https://github.com/Nyxite/NyxiteServer), [14 §14.9](https://github.com/Nyxite/NyxiteServer)) — the maintainer's official instance(s) in v1; absent elsewhere.
+- The in-app bug-reporting helpdesk runs on the **central vendor-side `NyxiteSupport`** service (OPEN-DECISIONS **SUP-1..SUP-13**), which has **its own operator UI**. This dashboard only **links out** to that UI — it holds **no ticket data and stores nothing** about tickets. An enterprise operator who opts into their **own** desk (SUP-10–SUP-13) links out to their local desk instead.
+- The link is shown **only where the server advertises `support.enabled`** (server [04 §4.9](https://github.com/Nyxite/NyxiteServer), [14 §14.9](https://github.com/Nyxite/NyxiteServer)); with the 2026-07-12 SUP-9 correction, reporting is available on **all** instances (maintainer's + third-party) unless an operator switches the surface off.
 - The support plane is a **consensual, non-E2EE** plane, **separate from the zero-knowledge admin plane** this dashboard operates on; no ticket content ever crosses into the admin API or this UI.
 
 ## 1.10 Out of scope (privacy over features)
 
-Deliberately absent, because they would require content access or fall outside the privacy-first remit: content moderation / server-side content search / content DLP / legal-hold content production / **break-glass** (impossible under E2EE); usage/business analytics, billing, branding/white-label (dropped to stay privacy-focused); **enterprise/family file-sharing groups** — **deferred** as a backlog item (`docs/OPEN-DECISIONS.md`). The **support/helpdesk (in-app bug reporting)** is **not** managed here: it lives on the central vendor-side `NyxiteSupport` service and this dashboard only **links out** to its operator UI (§1.9b, SUP-1..SUP-9) — it stores no ticket data.
+Deliberately absent, because they would require content access or fall outside the privacy-first remit: content moderation / server-side content search / content DLP / legal-hold content production / **break-glass** (impossible under E2EE); usage/business analytics, billing, branding/white-label (dropped to stay privacy-focused); **enterprise/family file-sharing group *keys*** — the feature is **resolved** (G-2–G-5, Phase 4.4) but its **group-key layer is client-side**, so key material is out of scope here by design (the dashboard manages only membership); not deferred. The **support/helpdesk (in-app bug reporting)** is **not** managed here: it lives on the vendor-side `NyxiteSupport` service and this dashboard only **links out** to its operator UI (§1.9b, SUP-1..SUP-13) — it stores no ticket data.
 
 ## 1.11 Access & hosting
 
