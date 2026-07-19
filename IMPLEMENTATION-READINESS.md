@@ -7,19 +7,31 @@ component's own repo (`NyxiteAdmin/`) and (b) the shared Nyxite info repo (`Nyxi
 
 The concept, architecture, packaging, auth model, and RBAC/zero-knowledge semantics are
 specified well enough. But NyxiteAdmin is, by construction, **nothing but a Next.js renderer
-and caller of the server's `/admin/**` API** (AD-2). That API's *codeable contract* — request/
-response schemas, pagination, error bodies, the permission catalog, the audit-row schema, the
-audit-bundle hash construction, the SIEM/policy config shapes, and the dashboard's own login
-flow — is **server-owned and lives in the server repo** (`server specification/12, 03, 08, 09,
-13` and the generated `/openapi/v1.json`), which is **not** one of the two allowed inputs.
-Within (a)+(b) we have only an *endpoint inventory* (HTTP verb + path + a one-line prose
-description) plus the RBAC/existence-hiding *semantics*. You cannot write a typed SSR client,
-tables, forms, or a signed-bundle verifier against prose.
+and caller of the server's `/admin/**` API** (AD-2). That API's *codeable contract* — field-level
+request/response schemas, pagination, error bodies, the permission catalog, the scope JSON
+schema, the audit-row schema, the audit-bundle hash construction, and the SIEM/policy config
+shapes — is **server-owned**. Within (a)+(b) we have only an *endpoint inventory* (HTTP verb +
+path + a one-line prose description) plus the RBAC/existence-hiding *semantics*. You cannot write
+a typed SSR client, tables, forms, or a signed-bundle verifier against prose.
 
-Scope note: `/home/luis/Programming/Nyxite/NyxiteServer/` is present on disk but is a *separate
-component repo*, explicitly excluded by the task's input rules. Its `specification/` is exactly
-where the missing contract lives — which confirms the gap is real, not an oversight of the
-shared docs.
+**Correction to an earlier premise.** A prior draft assumed the NyxiteServer spec repo was
+off-limits (not one of the two allowed inputs). It is in fact **present on disk and has been
+consulted** (`/home/luis/Programming/Nyxite/NyxiteServer/specification/`), and doing so **closes
+hard blocker B5 and the license/entitlement view** (leaving 5 hard blockers, B1–B4 + B6):
+- **B5 (dashboard auth) — resolved.** `08-authentication.md §8.1` fully defines the login
+  mechanics: `POST /auth/login` → `{challenge:"totp_required", mfaToken}`, `POST /auth/login/totp`
+  → `{accessToken, refreshToken}`, the WebAuthn options/assert pair, `POST /auth/refresh`, and the
+  `403 2fa_required` step-up rule (`§8.2`). Only the **SSR token-forwarding wiring** remains — that
+  is a dashboard *implementation* task, not a missing spec.
+- **The license/entitlement view — resolved.** `12-administration.md §12.8` pins `GET
+  /admin/license` → `{mode, tier, email, registered, active, lease_exp, entitlement_exp, state,
+  enterprise_flags[]}` — the one `/admin/**` endpoint on disk with a real field schema.
+
+But the **core gaps persist**. `12-administration.md` is itself a **[P]-level prose chapter** —
+the same verb+path endpoint tables, *no field schemas* — and there is **no `/openapi/v1.json`
+anywhere on disk**. `03-data-model.md` gives backing columns (e.g. `users.status`,
+`storage_quota_bytes`, the `audit_log` columns, `role_permissions.scope jsonb`) but not the API
+response shape. So having the server repo does not, by itself, unblock B1–B4 or B6.
 
 ---
 
@@ -95,16 +107,17 @@ Acceptance cases that exercise the dashboard: `P4.2-TC-1,3,7,9,10,11` and `P4.4-
 - **Need:** the `P4.2-CORE-2` fixture artifact (row canonicalization, chain hash algo, test
   vectors) + audit-signing key provisioning.
 
-### B5 — Dashboard's own authentication flow is unspecified
-- **Decision is set** (AD-3: reuse the server's native admin session/token, WireGuard-only) but
-  the **mechanics are not**: which endpoints implement login (password + required TOTP, and/or
-  passkey/WebAuthn ceremony), token/refresh/session-cookie handling, and how the SSR layer
-  attaches the admin token to `/admin/**` calls. These auth endpoints are server-owned
-  (`server 08`) and appear **nowhere** in `§1.6` or (a)+(b).
-- **Blocks:** the dashboard shell/login — a prerequisite for *every* view in P4.2-ADM-1.
-- **Looked in:** `§1.11`, `SPECIFICATION §10,§13`, `OPEN-DECISIONS #9, AD-3`.
-- **Need:** the native-auth API contract (login/TOTP/passkey/refresh) and the token-forwarding
-  pattern for the SSR client.
+### B5 — Dashboard's own authentication flow — ✅ RESOLVED (via `server 08`)
+- **Decision is set** (AD-3: reuse the server's native admin session/token, WireGuard-only) **and
+  the mechanics are now available** in the on-disk server spec. `08-authentication.md §8.1` fully
+  defines the login endpoints and payloads: `POST /auth/login` → `{challenge:"totp_required",
+  mfaToken}`, `POST /auth/login/totp` → `{accessToken, refreshToken}`, the WebAuthn options/assert
+  pair, `POST /auth/refresh`, and the `403 2fa_required` step-up rule (`§8.2`).
+- **Remaining work is dashboard implementation, not a missing spec:** the **SSR token-forwarding
+  wiring** (attaching the admin token to `/admin/**` calls from the Next.js server layer). No spec
+  artifact is outstanding.
+- **Was blocking:** the dashboard shell/login. Now unblocked for build.
+- **Source:** `server specification/08-authentication.md §8.1–§8.2`.
 
 ### B6 — SIEM stream config + security-policy config have no defined contract (or endpoint)
 - **SIEM:** `GET/PUT /admin/audit/stream` is listed, but the config body (syslog target,
@@ -195,8 +208,10 @@ table, render an audit row, verify a bundle, or log the operator in from prose a
 
 **Single most unblocking artifact:** the server's **`/openapi/v1.json`** (or `server
 specification/12`) covering the full `/admin/**` surface — it resolves B1, most of B2/B6/S6–S8
-in one document. Then B3 (permission/scope schema), B4 (audit-chain fixture), B5 (native-auth
-flow), and the S-series scoping rulings.
+in one document. Then B3 (permission/scope schema), B4 (audit-chain fixture), and the S-series
+scoping rulings. B5 (native-auth flow) is already resolved by `server 08`; the license view by
+`server 12 §12.8`.
 
-**Hard blockers: 6 (B1–B6). Scope-mismatch gaps needing a ruling + contract: 8 (S1–S8).
+**Hard blockers: 5 remaining (B1–B4, B6) — B5 resolved via `server 08`; the license/entitlement
+view resolved via `server 12 §12.8`. Scope-mismatch gaps needing a ruling + contract: 8 (S1–S8).
 Minor ambiguities: 5 (M1–M5).**
